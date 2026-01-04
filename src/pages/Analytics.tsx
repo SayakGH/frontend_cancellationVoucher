@@ -31,7 +31,7 @@ export default function Analytics() {
       <div className="hidden md:grid grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Total Invoices</CardTitle>
+            <CardTitle>Total Cancellations</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{totalInvoices}</p>
@@ -112,7 +112,7 @@ export default function Analytics() {
       {/* ================= LINE CHART ================= */}
       <Card>
         <CardHeader>
-          <CardTitle>Payments Received (Last 30 Days)</CardTitle>
+          <CardTitle>Payments Done (Last 30 Days)</CardTitle>
         </CardHeader>
 
         <CardContent className="h-[300px] sm:h-[360px]">

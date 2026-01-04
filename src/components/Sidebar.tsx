@@ -9,6 +9,7 @@ export default function Sidebar() {
   return (
     <div className="hidden md:block w-64 h-full bg-gray-900 text-white p-4 space-y-4">
       <h1 className="text-xl font-bold mb-6">Dashboard</h1>
+
       {role === "admin" && (
         <Button
           variant="ghost"
@@ -18,12 +19,13 @@ export default function Sidebar() {
           Analytics
         </Button>
       )}
+
       <Button
         variant="ghost"
         className="w-full justify-start text-gray-300"
         onClick={() => setPage("addinvoices")}
       >
-        Add Invoices
+        Add Cancellations
       </Button>
 
       <Button
@@ -31,8 +33,31 @@ export default function Sidebar() {
         className="w-full justify-start text-gray-300"
         onClick={() => setPage("invoices")}
       >
-        Manage Invoices
+        Manage Cancellations
       </Button>
+
+      {/* Cancel Records */}
+      {role === "admin" && (
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-gray-300"
+          onClick={() => setPage("cancelrecords")}
+        >
+          Cancelled Invoices
+        </Button>
+      )}
+
+      {/* ✅ NEW: Payments */}
+      {role === "admin" && (
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-gray-300"
+          onClick={() => setPage("payments")}
+        >
+          Payments
+        </Button>
+      )}
+
       {role === "admin" && (
         <Button
           variant="ghost"
