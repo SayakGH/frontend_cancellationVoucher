@@ -39,7 +39,7 @@ export default function MobileSidebar() {
           <Button
             variant="ghost"
             className="w-full justify-start"
-            onClick={() => handleSelect("addinvoices")}
+            onClick={() => handleSelect("addVoucher")}
           >
             Add Invoices
           </Button>
@@ -47,7 +47,7 @@ export default function MobileSidebar() {
           <Button
             variant="ghost"
             className="w-full justify-start"
-            onClick={() => handleSelect("invoices")}
+            onClick={() => handleSelect("voucher")}
           >
             Manage Invoices
           </Button>

@@ -23,7 +23,7 @@ export default function Sidebar() {
       <Button
         variant="ghost"
         className="w-full justify-start text-gray-300"
-        onClick={() => setPage("addinvoices")}
+        onClick={() => setPage("addVoucher")}
       >
         Add Cancellations
       </Button>
@@ -31,21 +31,10 @@ export default function Sidebar() {
       <Button
         variant="ghost"
         className="w-full justify-start text-gray-300"
-        onClick={() => setPage("invoices")}
+        onClick={() => setPage("voucher")}
       >
         Manage Cancellations
       </Button>
-
-      {/* Cancel Records */}
-      {role === "admin" && (
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-gray-300"
-          onClick={() => setPage("cancelrecords")}
-        >
-          Cancelled Invoices
-        </Button>
-      )}
 
       {/* ✅ NEW: Payments */}
       {role === "admin" && (

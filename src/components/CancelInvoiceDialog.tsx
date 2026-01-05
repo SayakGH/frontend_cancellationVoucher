@@ -9,17 +9,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
+import { createCancellationFromInvoice } from "@/api/cancellation";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
   setOpen: (value: boolean) => void;
   invoice: INVOICE;
+  onRefresh: () => void; // 🔥 new
 }
 
 export default function CancelInvoiceDialog({
   open,
   setOpen,
   invoice,
+  onRefresh,
 }: Props) {
   const [cancellationCharge, setCancellationCharge] = useState<number>(0);
   const [netReturn, setNetReturn] = useState<number>(0);
@@ -27,6 +31,12 @@ export default function CancelInvoiceDialog({
   const [remaining, setRemaining] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<
+    "Cash" | "UPI" | "Bank Transfer" | "Cheque" | "Others" | "Demand Draft"
+  >("Cash");
+
+  const [bankName, setBankName] = useState("");
+  const [chequeNumber, setChequeNumber] = useState("");
 
   /* ================= AUTO CALCULATION ================= */
 
@@ -43,21 +53,47 @@ export default function CancelInvoiceDialog({
 
   /* ================= SUBMIT (UI ONLY) ================= */
 
-  const handleCancel = () => {
-    setLoading(true);
+  const handleCancel = async () => {
+    try {
+      if (paymentMode === "Cheque") {
+        if (!bankName.trim() || !chequeNumber.trim()) {
+          toast.error(
+            "Bank name and cheque number are required for cheque payments"
+          );
+          return;
+        }
+      }
 
-    console.log("CANCEL INVOICE (UI ONLY)", {
-      invoiceId: invoice._id,
-      advance: invoice.advance,
-      cancellationCharge,
-      netReturn,
-      refund,
-      remaining,
-    });
+      setLoading(true);
 
-    setLoading(false);
-    setOpen(false);        // close cancel dialog
-    setSuccessOpen(true);  // open success popup
+      const payload = {
+        cancellation_charge: cancellationCharge,
+        net_return: netReturn,
+        already_returned: refund,
+        yetTB_returned: remaining,
+        payment: {
+          mode: paymentMode,
+          bankName: paymentMode === "Cheque" ? bankName : null,
+          chequeNumber: paymentMode === "Cheque" ? chequeNumber : null,
+        },
+      };
+
+      const res = await createCancellationFromInvoice(invoice._id, payload);
+
+      if (!res.success) {
+        throw new Error(res.message || "Cancellation failed");
+      }
+
+      setOpen(false);
+      setSuccessOpen(true);
+
+      onRefresh(); // 🔥 Reload invoices
+    } catch (err: any) {
+      console.error("Cancel Invoice Error:", err);
+      toast.error(err.message || "Failed to cancel invoice");
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* ================= UI ================= */
@@ -88,24 +124,18 @@ export default function CancelInvoiceDialog({
 
             {/* Cancellation Charge */}
             <div>
-              <label className="text-sm font-medium">
-                Cancellation Charge
-              </label>
+              <label className="text-sm font-medium">Cancellation Charge</label>
               <Input
                 type="number"
                 value={cancellationCharge}
-                onChange={(e) =>
-                  setCancellationCharge(Number(e.target.value))
-                }
+                onChange={(e) => setCancellationCharge(Number(e.target.value))}
                 placeholder="Enter cancellation charge"
               />
             </div>
 
             {/* Net Return */}
             <div>
-              <label className="text-sm font-medium">
-                Net Return (Auto)
-              </label>
+              <label className="text-sm font-medium">Net Return (Auto)</label>
               <Input
                 value={netReturn}
                 readOnly
@@ -115,9 +145,7 @@ export default function CancelInvoiceDialog({
 
             {/* Refund */}
             <div>
-              <label className="text-sm font-medium">
-                Refund Amount
-              </label>
+              <label className="text-sm font-medium">Refund Amount</label>
               <Input
                 type="number"
                 value={refund}
@@ -128,15 +156,52 @@ export default function CancelInvoiceDialog({
 
             {/* Remaining */}
             <div>
-              <label className="text-sm font-medium">
-                Remaining (Auto)
-              </label>
+              <label className="text-sm font-medium">Remaining (Auto)</label>
               <Input
                 value={remaining}
                 readOnly
                 className="bg-muted cursor-not-allowed"
               />
             </div>
+            {/* Payment Mode */}
+            <div>
+              <label className="text-sm font-medium">Refund Mode</label>
+              <select
+                value={paymentMode}
+                onChange={(e) => setPaymentMode(e.target.value as any)}
+                className="w-full border rounded-md p-2 mt-1"
+              >
+                <option value="Cash">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Cheque">Cheque</option>
+                <option value="Demand Draft">Demand Draft</option>
+                <option value="Others">Others</option>
+              </select>
+            </div>
+
+            {/* Bank + Cheque (only if cheque) */}
+            {paymentMode === "Cheque" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Bank Name</label>
+                  <Input
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    placeholder="Enter bank name"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Cheque Number</label>
+                  <Input
+                    value={chequeNumber}
+                    onChange={(e) => setChequeNumber(e.target.value)}
+                    placeholder="Enter cheque number"
+                  />
+                </div>
+              </div>
+            )}
 
             <Button
               variant="destructive"
@@ -163,10 +228,7 @@ export default function CancelInvoiceDialog({
             New cancellation cheque has been created successfully.
           </p>
 
-          <Button
-            className="w-full"
-            onClick={() => setSuccessOpen(false)}
-          >
+          <Button className="w-full" onClick={() => setSuccessOpen(false)}>
             OK
           </Button>
         </DialogContent>

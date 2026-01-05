@@ -6,9 +6,10 @@ import type { INVOICE } from "@/types/invoicsTypes";
 
 interface Props {
   invoice: INVOICE;
+  onRefresh: () => void;
 }
 
-export default function InvoiceCard({ invoice }: Props) {
+export default function InvoiceCard({ invoice, onRefresh }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -36,7 +37,12 @@ export default function InvoiceCard({ invoice }: Props) {
         </CardContent>
       </Card>
 
-      <CancelInvoiceDialog open={open} setOpen={setOpen} invoice={invoice} />
+      <CancelInvoiceDialog
+        open={open}
+        setOpen={setOpen}
+        invoice={invoice}
+        onRefresh={onRefresh}
+      />
     </>
   );
 }
