@@ -8,6 +8,7 @@ export interface IAuthResponse {
   message: string;
   token: string;
   user: IUser;
+  name?: string;
 }
 
 export interface IValidateResponse {

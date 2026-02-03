@@ -40,6 +40,16 @@ import {
   deleteVoucher,
   updateVoucher,
 } from "@/api/cancellation";
+import { Copy } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical, History } from "lucide-react";
 
 /* ================= UTILS ================= */
 const getDate = (iso: string) => iso.split("T")[0];
@@ -61,7 +71,7 @@ export default function Invoices() {
   /* ===== Edit Payment ===== */
   const [open, setOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<CANCELLATION | null>(
-    null
+    null,
   );
   const [payment, setPayment] = useState<number | null>(null);
   const [paymentMode, setPaymentMode] = useState<
@@ -84,9 +94,8 @@ export default function Invoices() {
     setVouchers(data.data);
   };
   const fetchHistory = async (id: string) => {
-    const data: IGetLatestCancellationResponse = await getCancellationHistory(
-      id
-    );
+    const data: IGetLatestCancellationResponse =
+      await getCancellationHistory(id);
     setHistoryCancellations(data.data);
   };
   useEffect(() => {
@@ -102,10 +111,19 @@ export default function Invoices() {
       inv._id.toLowerCase().includes(search.toLowerCase()) ||
       inv.customer.name.toLowerCase().includes(search.toLowerCase()) ||
       inv.customer.phone.includes(search) ||
-      inv.company.name.toLowerCase().includes(search.toLowerCase())
+      inv.company.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   /* ================= HANDLERS ================= */
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Cancellation ID copied");
+    } catch {
+      toast.error("Failed to copy");
+    }
+  };
 
   const handleEditClick = (cancellation: CANCELLATION) => {
     setSelectedInvoice(cancellation);
@@ -191,6 +209,55 @@ export default function Invoices() {
     }
   };
 
+  const CancellationActionMenu = ({ can }: { can: CANCELLATION }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+          <MoreVertical className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-[170px]">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+
+        <DropdownMenuItem onClick={() => handleHistoryClick(can)}>
+          <History className="mr-2 h-4 w-4" />
+          History
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          onClick={() =>
+            navigate(`/voucher/${can._id}`, {
+              state: { cancellation: can },
+            })
+          }
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Download
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={() => handleEditClick(can)}>
+          <Pencil className="mr-2 h-4 w-4" />
+          Edit Payment
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+          onClick={() => {
+            setInvoiceToDelete(can.inv_id);
+            setDeleteOpen(true);
+          }}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   /* ================= UI ================= */
   return (
     <div className="space-y-6">
@@ -238,7 +305,21 @@ export default function Invoices() {
           <TableBody>
             {filteredInvoices.map((can) => (
               <TableRow key={can._id}>
-                <TableCell>{can._id}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm">{can._id}</span>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => copyToClipboard(can._id)}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </TableCell>
+
                 <TableCell>{can.inv_id}</TableCell>
                 <TableCell>{can.customer.name}</TableCell>
                 <TableCell>{can.customer.phone}</TableCell>
@@ -248,7 +329,7 @@ export default function Invoices() {
                 <TableCell>{getDate(can.createdAt)}</TableCell>
                 <TableCell>{getTime(can.createdAt)}</TableCell>
                 <TableCell className="flex justify-end gap-2">
-                  <Button
+                  {/* <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleHistoryClick(can)}
@@ -281,7 +362,19 @@ export default function Invoices() {
                     }}
                   >
                     <Trash2 className="h-4 w-4" />
+                  </Button> */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      navigate(`/voucher/${can._id}`, {
+                        state: { cancellation: can },
+                      })
+                    }
+                  >
+                    <Download className="h-4 w-4" />
                   </Button>
+                  <CancellationActionMenu can={can} />
                 </TableCell>
               </TableRow>
             ))}
@@ -290,86 +383,70 @@ export default function Invoices() {
       </div>
 
       {/* ================= MOBILE VIEW ================= */}
-      <div className="space-y-4 md:hidden">
+      <div className="space-y-3 md:hidden">
         {filteredInvoices.map((can) => (
-          <div
-            key={can._id}
-            className="rounded-xl border bg-white p-4 shadow-sm space-y-3"
-          >
-            {/* Header */}
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="font-semibold text-base">{can.customer.name}</p>
-                <p className="text-xs text-muted-foreground">{can._id}</p>
-                <p className="text-xs text-muted-foreground">
+          <div key={can._id} className="rounded-lg border bg-white shadow-sm">
+            {/* ===== Header ===== */}
+            <div className="flex items-start justify-between px-3 py-2 border-b bg-muted/20">
+              <div className="space-y-0.5">
+                <p className="font-medium text-sm leading-tight">
+                  {can.customer.name}
+                </p>
+
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[11px] text-muted-foreground font-mono">
+                    {can._id}
+                  </p>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4"
+                    onClick={() => copyToClipboard(can._id)}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground">
                   {can.customer.phone}
                 </p>
               </div>
 
-              <span
-                className={`font-semibold text-sm ${
-                  can.yetTB_returned === 0 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                ₹{can.yetTB_returned}
-              </span>
+              {/* Action Menu */}
+              <CancellationActionMenu can={can} />
             </div>
 
-            {/* Amounts */}
-            <div className="grid grid-cols-2 gap-y-2 text-sm">
-              <p className="text-muted-foreground">Total</p>
-              <p>₹{can.advance - can.cancellation_charge}</p>
+            {/* ===== Body ===== */}
+            <div className="px-3 py-2 space-y-2">
+              {/* Due row */}
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
+                  Due
+                </span>
 
-              <p className="text-muted-foreground">Paid</p>
-              <p className="text-green-700">₹{can.already_returned}</p>
+                <span
+                  className={`font-semibold text-sm ${
+                    can.yetTB_returned === 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  ₹{can.yetTB_returned}
+                </span>
+              </div>
 
-              <p className="text-muted-foreground">Due</p>
-              <p className="text-red-600 font-semibold">
-                ₹{can.yetTB_returned}
-              </p>
+              {/* Compact details */}
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                <span className="text-muted-foreground">Total</span>
+                <span>₹{can.advance - can.cancellation_charge}</span>
 
-              <p className="text-muted-foreground">Date</p>
-              <p>
-                {getDate(can.createdAt)} {getTime(can.createdAt)}
-              </p>
-            </div>
+                <span className="text-muted-foreground">Paid</span>
+                <span className="text-green-700">₹{can.already_returned}</span>
 
-            {/* Actions */}
-            <div className="grid grid-cols-4 gap-2 pt-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleHistoryClick(can)}
-              >
-                History
-              </Button>
-
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  navigate(`/voucher/${can._id}`, {
-                    state: { cancellation: can },
-                  })
-                }
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-
-              <Button size="sm" onClick={() => handleEditClick(can)}>
-                <Pencil className="h-4 w-4" />
-              </Button>
-
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => {
-                  setInvoiceToDelete(can.inv_id);
-                  setDeleteOpen(true);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                <span className="text-muted-foreground">Date</span>
+                <span>
+                  {getDate(can.createdAt)} {getTime(can.createdAt)}
+                </span>
+              </div>
             </div>
           </div>
         ))}
@@ -412,7 +489,7 @@ export default function Invoices() {
               value={payment ?? ""}
               onChange={(e) =>
                 setPayment(
-                  e.target.value === "" ? null : Number(e.target.value)
+                  e.target.value === "" ? null : Number(e.target.value),
                 )
               }
             />
